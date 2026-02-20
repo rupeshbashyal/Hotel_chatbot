@@ -1,0 +1,9 @@
+{
+    "greeting": ["hello", "hi", "good morning"],
+    "checkin_time": ["check in time", "when can i check in"],
+    "wifi": ["do you have wifi", "internet available"],
+    "parking": ["parking available", "car parking free"],
+    "menu": ["show menu", "what food do you serve"],
+    "booking": ["how to book room", "i want to reserve"],
+    "goodbye": ["bye", "thank you"]
+  }
