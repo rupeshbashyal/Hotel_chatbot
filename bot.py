@@ -5,7 +5,7 @@ from pathlib import Path
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from rapidfuzz import process
+from rapidfuzz import process, fuzz
 
 # Paths relative to this file so bot works from CLI or when imported by Django
 BOT_DIR = Path(__file__).resolve().parent
@@ -93,9 +93,36 @@ model = LogisticRegression()
 model.fit(X, labels)
 
 # ---------------------------
-# VOCABULARY
+# VOCABULARY (phrases + words for better fuzzy matching)
 # ---------------------------
-vocabulary = list(set(texts))
+phrase_vocabulary = list(set(texts))
+word_vocabulary = set()
+for phrase in texts:
+    word_vocabulary.update(phrase.split())
+word_vocabulary = list(word_vocabulary)
+# Combined: phrases first (prefer phrase match), then words
+vocabulary = phrase_vocabulary + word_vocabulary
+
+# ---------------------------
+# SYNONYMS (map to canonical form for better intent matching)
+# ---------------------------
+SYNONYMS = {
+    "reserve": "book", "reservation": "booking", "reserving": "booking",
+    "internet": "wifi", "wireless": "wifi", "network": "wifi", "net": "wifi",
+    "car": "parking", "vehicle": "parking", "park": "parking",
+    "food": "menu", "restaurant": "menu", "eat": "menu", "cuisine": "menu",
+    "room": "booking", "rooms": "booking", "accommodation": "booking",
+    "checkin": "check in", "check-in": "check in",
+    "checkout": "check out", "check-out": "check out",
+    "arrival": "check in", "arrive": "check in",
+    "departure": "check out", "leave": "check out", "vacate": "check out",
+    "address": "location", "where": "location", "directions": "location",
+    "phone": "contact", "number": "contact", "call": "contact", "email": "contact",
+    "thx": "thanks", "thankyou": "thanks", "ty": "thanks",
+    "bye": "goodbye", "goodbye": "goodbye", "see ya": "goodbye",
+    "hi": "hello", "hey": "hello", "helo": "hello", "hii": "hello",
+    "namaste": "hello", "namaskar": "hello",
+}
 
 # ---------------------------
 # BOT RESPONSES
@@ -191,13 +218,66 @@ responses = {
 }
 
 # ---------------------------
-# CORRECT SPELLING
+# COMMON TYPOS (explicit fixes before fuzzy match)
 # ---------------------------
-def correct_spelling(user_input, vocabulary):
-    match, score, _ = process.extractOne(user_input, vocabulary)
-    if score > 80:
-        return match
-    return user_input
+COMMON_TYPOS = {
+    "wify": "wifi", "wfi": "wifi", "wifii": "wifi", "wi fi": "wifi",
+    "internt": "internet", "interent": "internet",
+    "parkng": "parking", "parkin": "parking",
+    "bookng": "booking", "bookig": "booking", "reserv": "reserve",
+    "chek": "check", "chek in": "check in", "chek out": "check out",
+    "menue": "menu", "menuu": "menu",
+    "rom": "room", "rooom": "room", "rrom": "room",
+    "thnks": "thanks", "thaks": "thanks", "tanks": "thanks",
+    "gud": "good", "gudbye": "goodbye", "gudby": "goodbye",
+    "ca": "cha", "xa": "cha",  # romanized Nepali (wifi cha?, room xa?)
+    "milxa": "milcha",  # "is available" in Nepali
+}
+
+
+def fix_common_typos(text):
+    """Apply explicit typo fixes before fuzzy matching."""
+    words = text.split()
+    return " ".join(COMMON_TYPOS.get(w, w) for w in words)
+
+
+# ---------------------------
+# APPLY SYNONYMS
+# ---------------------------
+def apply_synonyms(text):
+    """Replace synonym words with canonical form for better intent matching."""
+    words = text.split()
+    return " ".join(SYNONYMS.get(w, w) for w in words)
+
+
+# ---------------------------
+# SPELLING / FUZZY MATCHING (tuned threshold, word-level correction)
+# ---------------------------
+FUZZ_THRESHOLD = 75  # Lower = more lenient (catches more typos). 75-85 works well.
+
+def correct_spelling(user_input, phrase_vocab, word_vocab):
+    """Correct typos using phrase match first, then word-level correction."""
+    # 1. Try full phrase match (best for complete sentences)
+    if len(user_input) >= 3:
+        match, score, _ = process.extractOne(
+            user_input, phrase_vocab, scorer=fuzz.token_set_ratio
+        )
+        if score >= FUZZ_THRESHOLD:
+            return match
+
+    # 2. Word-level correction (for typos in individual words)
+    words = user_input.split()
+    corrected = []
+    for w in words:
+        if len(w) < 2:
+            corrected.append(w)
+            continue
+        match, score, _ = process.extractOne(w, word_vocab, scorer=fuzz.ratio)
+        if score >= FUZZ_THRESHOLD:
+            corrected.append(match)
+        else:
+            corrected.append(w)
+    return " ".join(corrected)
 
 # ---------------------------
 # RESPONSE FUNCTION
@@ -209,8 +289,14 @@ def get_response(user_input):
     if not user_input:
         return "Please type a message. I can help with booking, wifi, parking, menu, and more!"
 
-    # correct spelling / typos
-    user_input = correct_spelling(user_input, vocabulary)
+    # fix common typos (wify->wifi, parkng->parking, etc.)
+    user_input = fix_common_typos(user_input)
+
+    # apply synonyms (reserve->book, internet->wifi, etc.)
+    user_input = apply_synonyms(user_input)
+
+    # fuzzy spelling correction (phrase + word level, threshold 75)
+    user_input = correct_spelling(user_input, phrase_vocabulary, word_vocabulary)
 
     # convert to numbers
     X_test = vectorizer.transform([user_input])
