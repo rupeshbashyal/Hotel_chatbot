@@ -6,17 +6,16 @@
     "namaste",
     "hey there",
     "नमस्ते",
-    "नमस्कार"
+    "नमस्कार",
+    "कोठा बुक गर्न मिल्छ?"
   ],
 
   "checkin_time": [
-    "check in time",
+    "check in time", 
     "when can i check in",
-    "what time checkin",
-    "check in please",
-    "arrival time"
-
-  ],
+    "what time checkin", 
+    "check in please", 
+    "arrival time"],
 
   "wifi": [
     "do you have wifi",

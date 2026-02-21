@@ -1,6 +1,8 @@
 import json
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from rapidfuzz import process
+import random
 
 # ---------------------------
 # TEXT CLEANING FUNCTION
@@ -36,10 +38,17 @@ model = LogisticRegression()
 model.fit(X, labels)
 
 # ---------------------------
+# VOCABULARY
+# ---------------------------
+vocabulary = list(set(texts))
+
+# ---------------------------
 # BOT RESPONSES
 # ---------------------------
 responses = {
-    "greeting": "Welcome to Hotel Sunrise! How can I help you?",
+    "greeting": ["🙏 Welcome to Hotel Sunrise!",
+        "Hello! How can I assist you today?",
+        "Namaste! How may I help you?"],
     "checkin_time": "Check-in starts at 2 PM.",
     "checkout_time": "Check-out time is 12 PM.",
     "wifi": "Yes, we provide free high-speed WiFi.",
@@ -50,29 +59,60 @@ responses = {
 }
 
 # ---------------------------
+# CORRECT SPELLING
+# ---------------------------
+def correct_spelling(user_input, vocabulary):
+    match, score, _ = process.extractOne(user_input, vocabulary)
+    if score > 80:
+        return match
+    return user_input
+
+# ---------------------------
 # RESPONSE FUNCTION
 # ---------------------------
 def get_response(user_input):
+    # clean input
     user_input = clean_text(user_input)
+
+    # correct spelling / typos
+    user_input = correct_spelling(user_input, vocabulary)
+
+    # convert to numbers
     X_test = vectorizer.transform([user_input])
 
     # confidence score
     confidence = model.predict_proba(X_test).max()
 
-    if confidence < 0.40:
+    if confidence < 0.25:
         return "Sorry, I didn’t understand. Could you please rephrase?"
 
     intent = model.predict(X_test)[0]
-    return responses.get(intent, "I am not sure how to respond to that.")
 
+    reply = responses.get(intent)
+    if isinstance(reply, list):
+        return random.choice(reply)
+    return reply
 
 # ---------------------------
 # CHAT LOOP
 # ---------------------------
 print(" Hotel Support Bot Ready! (type 'exit' to stop)\n")
 
+# ---------------------------
+# LOG CHAT
+# ---------------------------
+def log_chat(user, bot):
+    with open("chatlog.txt", "a", encoding="utf-8") as f:
+        f.write(f"You: {user}\nBot: {bot}\n\n")
+
+# ---------------------------
+# CHAT LOOP
+# ---------------------------
 while True:
     user = input("You: ")
+    if user.lower() == "help":
+        print("Bot: You can ask about booking, wifi, parking, menu, or check-in time.")
+        continue
 
     if user.lower() == "exit":
         print("Bot: Goodbye!")
@@ -80,4 +120,5 @@ while True:
 
     response = get_response(user)
     print("Bot:", response)
+    log_chat(user, response)
 
