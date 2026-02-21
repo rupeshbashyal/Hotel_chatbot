@@ -2,6 +2,13 @@
 """Django's command-line utility for administrative tasks."""
 import os
 import sys
+from pathlib import Path
+
+# Add project root (Hotel_chatbot) so "from bot import get_response" works
+_manage_dir = Path(__file__).resolve().parent
+_project_root = _manage_dir.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
 
 
 def main():
