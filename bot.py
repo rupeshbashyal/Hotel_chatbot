@@ -1,5 +1,6 @@
 import json
 import random
+import re
 from pathlib import Path
 
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -12,10 +13,57 @@ DATA_JSON = BOT_DIR / "data.json"
 CHATLOG_TXT = BOT_DIR / "chatlog.txt"
 
 # ---------------------------
-# TEXT CLEANING FUNCTION
+# CONTRACTIONS (expand before processing)
 # ---------------------------
+CONTRACTIONS = {
+    "don't": "do not", "doesn't": "does not", "didn't": "did not",
+    "won't": "will not", "wouldn't": "would not", "couldn't": "could not",
+    "can't": "cannot", "isn't": "is not", "aren't": "are not",
+    "wasn't": "was not", "weren't": "were not", "haven't": "have not",
+    "hasn't": "has not", "hadn't": "had not", "we're": "we are",
+    "you're": "you are", "they're": "they are", "i'm": "i am",
+    "he's": "he is", "she's": "she is", "it's": "it is",
+    "what's": "what is", "that's": "that is", "there's": "there is",
+    "i've": "i have", "we've": "we have", "you've": "you have",
+    "they've": "they have", "i'd": "i would", "we'd": "we would",
+    "you'd": "you would", "they'd": "they would", "i'll": "i will",
+    "we'll": "we will", "you'll": "you will", "they'll": "they will",
+    "let's": "let us", "who's": "who is", "it'll": "it will",
+}
+
+# ---------------------------
+# TEXT PREPROCESSING
+# ---------------------------
+def expand_contractions(text):
+    """Expand contractions: don't -> do not"""
+    text_lower = text.lower()
+    for contraction, expansion in CONTRACTIONS.items():
+        text_lower = re.sub(r"\b" + re.escape(contraction) + r"\b", expansion, text_lower, flags=re.IGNORECASE)
+    return text_lower
+
+
+def remove_punctuation(text):
+    """Remove punctuation, keep letters, numbers, spaces. Replace hyphens with space."""
+    text = re.sub(r"-", " ", text)
+    text = re.sub(r"[^\w\s]", " ", text, flags=re.UNICODE)
+    return text
+
+
+def normalize_whitespace(text):
+    """Collapse multiple spaces and strip."""
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
 def clean_text(text):
-    return text.lower().strip()
+    """Full preprocessing pipeline for training and inference."""
+    if not text or not isinstance(text, str):
+        return ""
+    text = expand_contractions(text)
+    text = text.lower()
+    text = remove_punctuation(text)
+    text = normalize_whitespace(text)
+    return text
 
 
 # ---------------------------
@@ -155,8 +203,11 @@ def correct_spelling(user_input, vocabulary):
 # RESPONSE FUNCTION
 # ---------------------------
 def get_response(user_input):
-    # clean input
+    # preprocess input
     user_input = clean_text(user_input)
+
+    if not user_input:
+        return "Please type a message. I can help with booking, wifi, parking, menu, and more!"
 
     # correct spelling / typos
     user_input = correct_spelling(user_input, vocabulary)
