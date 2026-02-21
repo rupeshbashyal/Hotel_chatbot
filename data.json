@@ -1,9 +1,71 @@
 {
-    "greeting": ["hello", "hi", "good morning"],
-    "checkin_time": ["check in time", "when can i check in"],
-    "wifi": ["do you have wifi", "internet available"],
-    "parking": ["parking available", "car parking free"],
-    "menu": ["show menu", "what food do you serve"],
-    "booking": ["how to book room", "i want to reserve"],
-    "goodbye": ["bye", "thank you"]
-  }
+  "greeting": [
+    "hello",
+    "hi",
+    "good evening",
+    "namaste",
+    "hey there",
+    "नमस्ते",
+    "नमस्कार"
+  ],
+
+  "checkin_time": [
+    "check in time",
+    "when can i check in",
+    "what time checkin",
+    "check in please",
+    "arrival time"
+
+  ],
+
+  "wifi": [
+    "do you have wifi",
+    "internet available",
+    "is wifi free",
+    "wifi password",
+    "internet connection",
+    "wifi cha?",
+    "wifi छ?",
+    "internet cha?"
+  ],
+
+  "parking": [
+    "parking available",
+    "car parking free",
+    "is parking safe",
+    "where to park"
+  ],
+
+  "menu": [
+    "show menu",
+    "what food do you serve",
+    "restaurant menu",
+    "what can i eat",
+    "food options"
+  ],
+
+  "booking": [
+    "how to book room",
+    "i want to reserve",
+    "room booking process",
+    "reserve room",
+    "book a room",
+    "room book garna milcha?",
+    "कोठा बुक गर्न मिल्छ?"
+  ],
+
+  "goodbye": [
+  "bye",
+  "goodbye",
+  "thank you",
+  "thankyou",
+  "thanks",
+  "thanks a lot",
+  "ok bye",
+  "see you",
+  "thx",
+  "bye bye"
+  ]
+  
+}
+
