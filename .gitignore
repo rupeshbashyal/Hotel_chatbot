@@ -18,3 +18,6 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs (optional: uncomment if you don't want to track chat logs)
+# chatlog.txt
